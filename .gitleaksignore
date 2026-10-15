@@ -1,0 +1,3 @@
+# Accepted gitleaks findings (commit:file:rule:line). The generic-api-key rule reads
+# tokenizer_revision, a pinned Hugging Face commit hash, as a token.
+a764ce492ee2ccf46a5bd8e665d154847a6b6694:servers/guard-server/detectors.json:generic-api-key:97

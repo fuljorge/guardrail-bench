@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this benchmark, please cite it as below."
+title: "guardbench: a reproducible benchmark of open-weight guardrail models for customer-service agents in Brazilian Portuguese"
+type: software
+version: 0.1.0
+date-released: 2026-10-14
+license: Apache-2.0
+authors:
+  - family-names: "Jorge da Silva"
+    given-names: "Fulvio"
+    orcid: "https://orcid.org/0009-0001-0475-9343"
+abstract: >-
+  guardbench measures open-weight prompt-injection and toxicity detectors for
+  customer-service AI agents in Brazilian Portuguese, inside a two-layer guardrail pipeline
+  (disguise normalisation and injection patterns, then one model per detector) with
+  per-stage blocking rules for customer input, indirect content and agent output. It ships
+  a deterministic suite of 575 attacks and 1,091 legitimate texts, raw per-text scores of
+  12 candidates, Wilson intervals, cross-validated threshold selection and exact McNemar
+  tests, and production-mode latency.
+keywords:
+  - guardrails
+  - prompt injection
+  - jailbreak
+  - toxicity
+  - content moderation
+  - Brazilian Portuguese
+  - benchmark
+  - Strands Decider
+  - Qwen3Guard

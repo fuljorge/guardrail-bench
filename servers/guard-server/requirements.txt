@@ -1,0 +1,10 @@
+# Servidor de guardrails (specs/010-guardrails, plano §4.1). O torch é instalado antes, do
+# índice do PyTorch com o build de CUDA ou de CPU (Dockerfile e windows/install-windows.ps1).
+# FastAPI na mesma versão do Control Plane: os testes rodam no ambiente dele.
+fastapi==0.142.2
+uvicorn==0.54.0
+transformers==5.19.0
+# LayaGuardrail (candidato no benchmark; Apache 2.0): mesmo motor do classificador de Goals.
+laya==0.4.0
+# Tokenizadores em formato SentencePiece (ex.: XLM-RoBERTa do candidato unitary; Apache 2.0).
+sentencepiece==0.2.1
