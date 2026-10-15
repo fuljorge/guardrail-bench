@@ -21,7 +21,7 @@ CATEGORIES = [
     ("injection_direct", "Direct injection"),
     ("jailbreak", "Jailbreak"),
     ("injection_indirect", "Indirect injection"),
-    ("mixed_language", "PT/EN mix"),
+    ("mixed_language", "Language mix"),
     ("offensive", "Offensive"),
     ("prompt_leak", "Prompt leak"),
     ("data_exfiltration", "Third-party data"),

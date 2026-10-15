@@ -278,3 +278,24 @@ def test_token_do_decider_vem_de_arquivo(
     monkeypatch.delenv("GUARD_DECIDER_TOKEN_FILE")
     with pytest.raises(SystemExit):
         systemone_token(spec)
+
+
+def test_idioma_troca_so_o_lang_e_mantem_as_perguntas() -> None:
+    import json
+    from pathlib import Path
+
+    from guard_server import apply_lang, check_questions, model_version
+
+    config = json.loads(
+        (Path(__file__).parent / "detectors.json").read_text(encoding="utf-8")
+    )
+    english = apply_lang(config, "en")
+
+    for group in ("detectors", "candidates"):
+        for name, spec in config[group].items():
+            changed = english[group][name]
+            assert changed.get("lang") == ("en" if "lang" in spec else None), name
+            assert model_version(changed) == model_version(spec), name
+    for name, spec in english["detectors"].items():
+        check_questions(name, spec, required=True)
+    assert config["detectors"]["prompt_injection"]["lang"] == "pt"

@@ -11,3 +11,6 @@ build/
 .env
 # Raw runs are large and machine-specific; publish curated runs explicitly (git add -f).
 results/
+
+# Claude Code local settings
+.claude/settings.local.json

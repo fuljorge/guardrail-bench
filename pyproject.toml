@@ -1,6 +1,6 @@
 [project]
 name = "guardbench"
-version = "0.1.0"
+version = "0.2.0"
 description = "Reproducible benchmark of open-weight prompt-injection and toxicity detectors for customer-service agents in Brazilian Portuguese, with a deterministic attack/legitimate suite and per-stage pipeline rules."
 readme = "README.md"
 license = "Apache-2.0"

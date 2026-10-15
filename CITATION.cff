@@ -1,9 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this benchmark, please cite it as below."
-title: "guardbench: a reproducible benchmark of open-weight guardrail models for customer-service agents in Brazilian Portuguese"
+title: "guardbench: a reproducible benchmark of open-weight guardrail models for customer-service agents in Brazilian Portuguese and US English"
 type: software
-version: 0.1.0
-date-released: 2026-10-14
+version: 0.2.0
+date-released: 2026-10-15
 license: Apache-2.0
 authors:
   - family-names: "Jorge da Silva"
@@ -16,7 +16,10 @@ abstract: >-
   per-stage blocking rules for customer input, indirect content and agent output. It ships
   a deterministic suite of 575 attacks and 1,091 legitimate texts, raw per-text scores of
   12 candidates, Wilson intervals, cross-validated threshold selection and exact McNemar
-  tests, and production-mode latency.
+  tests, and production-mode latency. Version 0.2.0 adds a US English suite of the same
+  shape (575 attacks, 1,080 legitimate texts, written for the US context rather than
+  translated), its measurements, and a cross-language comparison with Newcombe intervals
+  and Fisher exact tests.
 keywords:
   - guardrails
   - prompt injection
@@ -24,6 +27,8 @@ keywords:
   - toxicity
   - content moderation
   - Brazilian Portuguese
+  - English
+  - multilingual
   - benchmark
   - Strands Decider
   - Qwen3Guard

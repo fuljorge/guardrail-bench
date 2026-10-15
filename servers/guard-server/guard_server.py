@@ -29,6 +29,7 @@ Configuração por variáveis de ambiente (README.md):
     GUARD_EVAL_MODE      1 para carregar também os candidatos do benchmark
     GUARD_ONLY           nomes separados por vírgula: carrega só esses (benchmark em rodadas)
     GUARD_DEVICE         cuda ou cpu
+    GUARD_LANG           idioma das perguntas do Laya e do Decider (padrão: o do JSON, "pt")
     GUARD_DECIDER_URL    endereço base do Strands Decider (HTTPS ou da mesma máquina)
     GUARD_DECIDER_TOKEN_FILE  arquivo com o token do Decider (padrão: /run/secrets/decider_api_key)
     GUARD_HOST, GUARD_PORT, GUARD_LOG_LEVEL
@@ -452,6 +453,23 @@ def check_questions(name: str, spec: dict[str, Any], *, required: bool) -> None:
         )
 
 
+DEFAULT_LANG = "pt"
+
+
+def apply_lang(config: dict[str, Any], lang: str) -> dict[str, Any]:
+    """Idioma das perguntas do Laya e do Decider (`lang`) em todos os detectores que o
+    usam: o benchmark em outro idioma roda os mesmos candidatos com `GUARD_LANG`."""
+    return {
+        group: {
+            name: ({**spec, "lang": lang} if "lang" in spec else spec)
+            for name, spec in specs.items()
+        }
+        if isinstance(specs, dict)
+        else specs
+        for group, specs in config.items()
+    }
+
+
 def load_detectors(
     config: dict[str, Any], device: str, *, eval_mode: bool
 ) -> dict[str, Detector]:
@@ -505,10 +523,16 @@ def main() -> None:
                 k: v for k, v in config.get("candidates", {}).items() if k in only
             },
         }
+    lang = os.environ.get("GUARD_LANG") or None
+    if lang:
+        config = apply_lang(config, lang)
     device = os.environ.get("GUARD_DEVICE", "cuda")
     detectors = load_detectors(config, device, eval_mode=eval_mode)
     app = build_app(
-        detectors, api_key=api_key, eval_mode=eval_mode, details={"device": device}
+        detectors,
+        api_key=api_key,
+        eval_mode=eval_mode,
+        details={"device": device, "lang": lang or DEFAULT_LANG},
     )
     uvicorn.run(
         app,

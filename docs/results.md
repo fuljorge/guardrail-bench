@@ -55,7 +55,7 @@ Injection attacks blocked: 34.0% [30.0%, 38.3%] (170/500); false positives: 0.46
 
 ### By attack category (same pairs and thresholds)
 
-| Pair | Direct injection (n=180) | Jailbreak (n=135) | Indirect injection (n=40) | PT/EN mix (n=10) | Offensive (n=75) | Prompt leak (n=105) | Third-party data (n=30) |
+| Pair | Direct injection (n=180) | Jailbreak (n=135) | Indirect injection (n=40) | Language mix (n=10) | Offensive (n=75) | Prompt leak (n=105) | Third-party data (n=30) |
 |---|---|---|---|---|---|---|---|
 | `pi_strands_decider` + `tox_qwen3guard_4b` | 99% | 96% | 100% | 100% | 97% | 77% | 10% |
 | `pi_strands_decider` + `tox_strands_decider` | 98% | 96% | 100% | 100% | 95% | 77% | 10% |

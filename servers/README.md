@@ -48,6 +48,23 @@ Then, for each server:
 uv run guardbench collect --url http://127.0.0.1:8302 --out results/run/measurements.json
 ```
 
+## Other languages (`GUARD_LANG`)
+
+The Laya and Strands Decider candidates ask their questions with a language hint (`lang`,
+`pt` in `detectors.json`). `GUARD_LANG` overrides it for every detector at start-up, without
+changing the questions themselves (same `questions_sha256`); `/health` reports it, and
+`guardbench collect --lang en-us` refuses a server that is not on `en`. Classifiers and
+Qwen3Guard take no language hint.
+
+The EN-US rounds use the same three containers as above, each with `-e GUARD_LANG=en`, and
+write to their own file:
+
+```sh
+uv run guardbench collect --lang en-us --url http://<server>:8302 \
+  --out results/v0.2.0-enus/measurements.json
+uv run guardbench compare results/v0.1.0/measurements.json results/v0.2.0-enus/measurements.json
+```
+
 ## Tests
 
 ```sh

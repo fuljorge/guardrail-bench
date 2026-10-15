@@ -64,6 +64,14 @@ def http_scan(base_url: str, token: str | None, timeout: float = 300.0) -> Scan:
     return scan
 
 
+def server_lang(base_url: str, token: str | None) -> str:
+    """Language of the server's Laya and Decider questions; servers without the field ask
+    in Portuguese (the v0.1.0 default)."""
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    health = httpx.get(f"{base_url}/health", headers=headers, timeout=30).json()
+    return str(health.get("lang", "pt"))
+
+
 def server_candidates(base_url: str, token: str | None) -> list[str]:
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     health = httpx.get(f"{base_url}/health", headers=headers, timeout=30).json()

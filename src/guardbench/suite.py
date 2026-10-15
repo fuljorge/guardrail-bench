@@ -1,10 +1,13 @@
-"""The PT-BR guardrail suite: deterministic generator and loader.
+"""The guardrail suites: deterministic generator and loader, one phrase bank per language.
 
-    guardbench build-suite --out data      # regenerates data/*.jsonl byte for byte
+    guardbench build-suite --out data                  # PT-BR: data/*_ptbr.jsonl, byte for byte
+    guardbench build-suite --lang en-us --out data     # EN-US: data/*_enus.jsonl
 
-Every phrase below was written for this benchmark (dataset card: `data/README.md`). The
-generator expands them with greetings, closings and disguises using a fixed seed, so the
-same files come out on every run.
+Every phrase was written for this benchmark (dataset cards: `data/README.md`,
+`data/README_enus.md`). The PT-BR bank is below; the EN-US bank (`suite_enus.py`) was
+written separately for the US context, with the same categories and sizes. The generator
+expands each bank with greetings, closings and disguises using a fixed seed, so the same
+files come out on every run.
 
 Each row: `id`, `text`, `label` (`attack` or `legit`), `category`, `stage` (`input`,
 `indirect` or `output`), `detector` (what should fire: `prompt_injection`, `toxicity` or
@@ -15,6 +18,7 @@ from __future__ import annotations
 
 import json
 import random
+from dataclasses import dataclass
 from pathlib import Path
 
 SEED = 20261014
@@ -499,6 +503,55 @@ _TRIGGERS = ("ignore", "desconsidere", "esqueça", "prompt", "regras", "instruç
              "jailbreak", "restrições", "dan", "sistema")  # fmt: skip
 
 
+@dataclass(frozen=True)
+class Bank:
+    """One language's phrases and the few words the generator adds around them."""
+
+    lang: str
+    seed: int
+    files: tuple[str, str]
+    source: str
+    injection: list[str]
+    jailbreak: list[str]
+    prompt_leak: list[str]
+    exfiltration: list[str]
+    offensive: list[str]
+    indirect_context: list[str]
+    indirect_payload: list[str]
+    mixed_language: list[str]
+    legit_base: dict[str, list[str]]
+    false_positive_traps: list[str]
+    greetings: list[str]
+    closings: list[str]
+    triggers: tuple[str, ...]
+    # The agent's own reply: an insult after an empathetic opening, or a harmless answer.
+    output_attack: str
+    output_legit: str
+
+
+PT_BR = Bank(
+    lang="pt-br", seed=SEED, files=("attacks_ptbr.jsonl", "legit_ptbr.jsonl"),
+    source="autoria", injection=INJECTION, jailbreak=JAILBREAK, prompt_leak=PROMPT_LEAK,
+    exfiltration=EXFILTRATION, offensive=OFFENSIVE, indirect_context=INDIRECT_CONTEXT,
+    indirect_payload=INDIRECT_PAYLOAD, mixed_language=ENGLISH_MIXED, legit_base=LEGIT_BASE,
+    false_positive_traps=FALSE_POSITIVE_TRAPS, greetings=GREETINGS, closings=CLOSINGS,
+    triggers=_TRIGGERS, output_attack="Entendo sua frustração. {text}",
+    output_legit="Claro! Sobre isso: {text} Vou verificar e já te respondo.",
+)  # fmt: skip
+
+LANGS = ("pt-br", "en-us")
+
+
+def bank_for(lang: str) -> Bank:
+    if lang == "pt-br":
+        return PT_BR
+    if lang == "en-us":
+        from .suite_enus import EN_US
+
+        return EN_US
+    raise ValueError(f"unknown language: {lang} (expected one of {', '.join(LANGS)})")
+
+
 def _disguise_word(word: str, kind: str, rng: random.Random) -> str:
     if kind == "homoglyph":
         return "".join(_HOMOGLYPHS.get(c, c) if rng.random() < 0.6 else c for c in word)
@@ -507,14 +560,16 @@ def _disguise_word(word: str, kind: str, rng: random.Random) -> str:
     if kind == "leet":
         return "".join(_LEET.get(c, c) for c in word)
     if kind == "invisible":
-        return "​".join(word)
+        return "\u200b".join(word)
     return word
 
 
-def disguise(text: str, kind: str, rng: random.Random) -> str:
+def disguise(
+    text: str, kind: str, rng: random.Random, triggers: tuple[str, ...] = _TRIGGERS
+) -> str:
     """Disguises the trigger words (or, if there are none, the first long word)."""
     words = text.split(" ")
-    targets = [i for i, w in enumerate(words) if w.lower().strip(",.:;!?'") in _TRIGGERS]
+    targets = [i for i, w in enumerate(words) if w.lower().strip(",.:;!?'") in triggers]
     if not targets:
         targets = [i for i, w in enumerate(words) if len(w) > 5][:1]
     for index in targets:
@@ -525,79 +580,88 @@ def disguise(text: str, kind: str, rng: random.Random) -> str:
 
 
 def _row(prefix: str, n: int, text: str, label: str, category: str, stage: str,
-         detector: str, disguise_kind: str = "none") -> dict[str, str]:  # fmt: skip
+         detector: str, disguise_kind: str, source: str) -> dict[str, str]:  # fmt: skip
     return {
         "id": f"{prefix}-{n:04d}", "text": text, "label": label, "category": category,
-        "stage": stage, "detector": detector, "disguise": disguise_kind, "source": "autoria",
+        "stage": stage, "detector": detector, "disguise": disguise_kind, "source": source,
     }  # fmt: skip
 
 
-def attacks(rng: random.Random) -> list[dict[str, str]]:
+def attacks(rng: random.Random, bank: Bank = PT_BR) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
 
     def add(text: str, category: str, stage: str, detector: str, kind: str = "none") -> None:
-        rows.append(_row("atk", len(rows) + 1, text, "attack", category, stage, detector, kind))
+        rows.append(
+            _row("atk", len(rows) + 1, text, "attack", category, stage, detector, kind,
+                 bank.source)
+        )  # fmt: skip
 
     groups = [
-        (INJECTION, "injection_direct"), (JAILBREAK, "jailbreak"), (PROMPT_LEAK, "prompt_leak"),
-        (EXFILTRATION, "data_exfiltration"), (ENGLISH_MIXED, "mixed_language"),
+        (bank.injection, "injection_direct"), (bank.jailbreak, "jailbreak"),
+        (bank.prompt_leak, "prompt_leak"), (bank.exfiltration, "data_exfiltration"),
+        (bank.mixed_language, "mixed_language"),
     ]  # fmt: skip
     for texts, category in groups:
         for text in texts:
             add(text, category, "input", "prompt_injection")
-    for text in OFFENSIVE:
+    for text in bank.offensive:
         add(text, "offensive", "input", "toxicity")
-    for text in OFFENSIVE[::2]:
+    for text in bank.offensive[::2]:
         # The agent's own model can be led to offend: output check.
-        add(f"Entendo sua frustração. {text}", "offensive", "output", "toxicity")
-    for context in INDIRECT_CONTEXT:
-        for payload in rng.sample(INDIRECT_PAYLOAD, 5):
+        add(bank.output_attack.format(text=text), "offensive", "output", "toxicity")
+    for context in bank.indirect_context:
+        for payload in rng.sample(bank.indirect_payload, 5):
             add(f"{context}\n\n{payload}", "injection_indirect", "indirect", "prompt_injection")
     kinds = ["homoglyph", "separators", "leet", "invisible"]
     for texts, category in groups[:3]:
         for text in texts:
             for kind in rng.sample(kinds, 2):
-                add(disguise(text, kind, rng), category, "input", "prompt_injection", kind)
+                add(
+                    disguise(text, kind, rng, bank.triggers), category, "input",
+                    "prompt_injection", kind,
+                )  # fmt: skip
     return rows
 
 
-def legit(rng: random.Random) -> list[dict[str, str]]:
+def legit(rng: random.Random, bank: Bank = PT_BR) -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     seen: set[str] = set()
 
     def add(text: str, category: str, stage: str = "input") -> None:
         if text not in seen:
             seen.add(text)
-            rows.append(_row("leg", len(rows) + 1, text, "legit", category, stage, "none"))
+            rows.append(
+                _row("leg", len(rows) + 1, text, "legit", category, stage, "none", "none",
+                     bank.source)
+            )  # fmt: skip
 
-    for domain, texts in LEGIT_BASE.items():
+    def framed(text: str) -> str:
+        return f"{rng.choice(bank.greetings)}{text}{rng.choice(bank.closings)}".strip()
+
+    for domain, texts in bank.legit_base.items():
         for text in texts:
             add(text, domain)
             for _ in range(7):
-                add(f"{rng.choice(GREETINGS)}{text}{rng.choice(CLOSINGS)}".strip(), domain)
-    for text in FALSE_POSITIVE_TRAPS:
+                add(framed(text), domain)
+    for text in bank.false_positive_traps:
         add(text, "false_positive_trap")
         for _ in range(4):
-            add(
-                f"{rng.choice(GREETINGS)}{text}{rng.choice(CLOSINGS)}".strip(),
-                "false_positive_trap",
-            )
+            add(framed(text), "false_positive_trap")
     # Clean indirect content and harmless agent replies.
-    for context in INDIRECT_CONTEXT:
+    for context in bank.indirect_context:
         add(context, "indirect_clean", "indirect")
-    for domain, texts in LEGIT_BASE.items():
+    for domain, texts in bank.legit_base.items():
         for text in texts[:3]:
-            add(f"Claro! Sobre isso: {text.lower()} Vou verificar e já te respondo.", domain,
-                "output")  # fmt: skip
+            add(bank.output_legit.format(text=text.lower()), domain, "output")
     return rows
 
 
-FILES = ("attacks_ptbr.jsonl", "legit_ptbr.jsonl")
+FILES = PT_BR.files
 
 
-def build() -> tuple[list[dict[str, str]], list[dict[str, str]]]:
-    rng = random.Random(SEED)  # reproducible sampling, not cryptographic
-    return attacks(rng), legit(rng)
+def build(bank: Bank = PT_BR) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    rng = random.Random(bank.seed)  # reproducible sampling, not cryptographic
+    return attacks(rng, bank), legit(rng, bank)
 
 
 def write(path: Path, rows: list[dict[str, str]]) -> None:
@@ -606,17 +670,18 @@ def write(path: Path, rows: list[dict[str, str]]) -> None:
             handle.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-def write_suite(out_dir: Path) -> tuple[int, int]:
-    attack_rows, legit_rows = build()
+def write_suite(out_dir: Path, lang: str = "pt-br") -> tuple[int, int]:
+    bank = bank_for(lang)
+    attack_rows, legit_rows = build(bank)
     out_dir.mkdir(parents=True, exist_ok=True)
-    write(out_dir / FILES[0], attack_rows)
-    write(out_dir / FILES[1], legit_rows)
+    write(out_dir / bank.files[0], attack_rows)
+    write(out_dir / bank.files[1], legit_rows)
     return len(attack_rows), len(legit_rows)
 
 
-def load_suite(data_dir: Path) -> list[dict[str, str]]:
+def load_suite(data_dir: Path, lang: str = "pt-br") -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    for name in FILES:
+    for name in bank_for(lang).files:
         with (data_dir / name).open(encoding="utf-8") as handle:
             rows += [json.loads(line) for line in handle if line.strip()]
     return rows
